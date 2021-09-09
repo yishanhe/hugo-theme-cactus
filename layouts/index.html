@@ -1,7 +1,15 @@
 {{ define "main" }}
+
+
+
+  {{ if not (isset .Site.Params "homepage") }}
+    {{ errorf "Please config [params.homepage] in the config file" }}
+  {{ end }}
+
+
   <section id="about">
-  {{ if isset .Site.Params "description" }}
-    {{ .Site.Params.description | $.Page.RenderString }}
+  {{ if isset .Site.Params.HomePage.About "description" }}
+    {{ .Site.Params.HomePage.About.Description | $.Page.RenderString }}
   {{ end }}
   {{ if isset .Site.Params "social" }}
       <p>Find me on
@@ -37,54 +45,63 @@
   {{ partial "optional-about.html" . }}
   </section>
 
-  <section id="writing">
-    <span class="h1"><a href="{{ .Site.Params.mainSection | absURL }}">{{ .Site.Params.mainSectionTitle | default "Writings" }}</a></span>
-    {{ if (and (and (isset .Site.Params "tagsoverview") (eq .Site.Params.tagsOverview true)) (gt (len .Site.Taxonomies.tags) 0)) }}
-    <span class="h2">Topics</span>
-    <span class="widget tagcloud">
-      {{ $AllRegularPagesCount := len .Site.RegularPages }}
-      {{ range $elem := .Site.Taxonomies.tags.Alphabetical }}
-      <a style="font-size: {{ (add 0.5 (mul 5 (div (float $elem.Count) $AllRegularPagesCount))) }}rem;" href="{{ $elem.Page.Permalink }}">
-        {{- .Page.Title -}}
-      </a>
-      {{ end }}
-    </span>
-    <span class="h2">Most recent</span>
-    {{ end }}
 
-    {{ $showAllPostsOnHomePage := false }}
-    {{ if (isset .Site.Params "showallpostsonhomepage") }}
-      {{ $showAllPostsOnHomePage = .Site.Params.ShowAllPostsOnHomePage }}
-    {{ end }}
-    {{ $dataFormat := .Site.Params.dateFormat | default "2006-01-02" }}
-    {{ $mainPosts := (sort ( where site.RegularPages "Type" "in" site.Params.mainSections ) "Date" "desc") }}
-    {{ if $showAllPostsOnHomePage }}
-    <ul class="post-list">
-      {{ range (.Paginate $mainPosts).Pages }}
-        <li class="post-item">
-          <div class="meta"><time datetime="{{ time .Date }}" itemprop="datePublished">{{ .Date.Format $dataFormat }}</time></div>
-          <span><a href="{{ .Permalink }}">{{ if .Title }} {{- .Title -}} {{ else }} {{- print "Untitled" -}}{{ end }}</a></span>
-        </li>
-      {{ end }}
-    </ul>
 
-    {{ partial "pagination.html" . }}
 
-    {{ else }}
-    <ul class="post-list">
-      {{ .Scratch.Set "count" 5 }}
-      {{ if isset .Site.Params "postsonhomepage" }}
-        {{ .Scratch.Set "count" .Site.Params.postsOnHomePage }}
+  {{ if not (isset .Site.Params.Homepage "writings") }}
+    {{ warnf  "Please config [params.homepage.writings] in the config file" }}
+  {{ end }}
+
+  {{ if (isset .Site.Params.Homepage "writings") }}
+    {{ $showPostsOnHomePageEnabled := .Site.Params.Homepage.Writings.Enabled | default true }}
+    {{ $sectionTitle := .Site.Params.Homepage.Writings.Title | default "Writings" }}
+    {{ $sectionUrl := .Site.Params.Homepage.Writings.Url | default "posts" }}
+    {{ $showAllPostsOnHomePage := .Site.Params.Homepage.Writings.ShowAllPosts | default false }}
+    {{ $pageTypes := .Site.Params.Homepage.Writings.Types | default (slice "posts") }}
+    {{ $postCount := .Site.Params.Homepage.Writings.PostCount | default 5 }}
+    {{ if $showPostsOnHomePageEnabled }}
+    <section id="writing">
+      <span class="h1"><a href="{{ $sectionUrl| absURL }}">{{ $sectionTitle }}</a></span>
+      {{ if (and (and (isset .Site.Params "tagsoverview") (eq .Site.Params.tagsOverview true)) (gt (len .Site.Taxonomies.tags) 0)) }}
+      <span class="h2">Topics</span>
+      <span class="widget tagcloud">
+        {{ $AllRegularPagesCount := len .Site.RegularPages }}
+        {{ range $elem := .Site.Taxonomies.tags.Alphabetical }}
+        <a style="font-size: {{ (add 0.5 (mul 5 (div (float $elem.Count) $AllRegularPagesCount))) }}rem;" href="{{ $elem.Page.Permalink }}">
+          {{- .Page.Title -}}
+        </a>
+        {{ end }}
+      </span>
+      <span class="h2">Most recent</span>
       {{ end }}
-      {{ range (first (.Scratch.Get "count") $mainPosts) }}
-        <li class="post-item">
-          <div class="meta"><time datetime="{{ time .Date }}" itemprop="datePublished">{{ .Date.Format $dataFormat }}</time></div>
-          <span><a href="{{ .Permalink }}">{{ if .Title }} {{- .Title -}} {{ else }} {{- print "Untitled" -}}{{ end }}</a></span>
-        </li>
+
+      {{ $dataFormat := .Site.Params.dateFormat | default "2006-01-02" }}
+      {{ $mainPosts := (sort ( where site.RegularPages "Type" "in" $pageTypes ) "Date" "desc") }}
+      {{ if $showAllPostsOnHomePage }}
+      <ul class="post-list">
+        {{ range (.Paginate $mainPosts).Pages }}
+          <li class="post-item">
+            <div class="meta"><time datetime="{{ time .Date }}" itemprop="datePublished">{{ .Date.Format $dataFormat }}</time></div>
+            <span><a href="{{ .Permalink }}">{{ if .Title }} {{- .Title -}} {{ else }} {{- print "Untitled" -}}{{ end }}</a></span>
+          </li>
+        {{ end }}
+      </ul>
+
+      {{ partial "pagination.html" . }}
+
+      {{ else }}
+      <ul class="post-list">
+        {{ range (first $postCount $mainPosts) }}
+          <li class="post-item">
+            <div class="meta"><time datetime="{{ time .Date }}" itemprop="datePublished">{{ .Date.Format $dataFormat }}</time></div>
+            <span><a href="{{ .Permalink }}">{{ if .Title }} {{- .Title -}} {{ else }} {{- print "Untitled" -}}{{ end }}</a></span>
+          </li>
+        {{ end }}
+      </ul>
       {{ end }}
-    </ul>
-    {{ end }}
-  </section>
+    </section>
+  {{ end }}
+  {{ end }}
 
   {{ $showProjectsList := false }}
   {{ if (isset .Site.Params "showprojectslist") }}
